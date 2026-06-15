@@ -1,6 +1,6 @@
 <div align="center">
 
-# Mi Bot de telegram  (Mini-PC Lab)
+# Mi Bot de Telegram (Mini-PC Lab)
 
 Este es un proyecto puramente personal y a medida, diseñado para resolver mis necesidades específicas de control y monitoreo en mi Mini-PC doméstica. Lo armé de forma modular principalmente para experimentar con una interfaz limpia dentro de Telegram (estilo Mini-App) y para que sea fácil meterle mano a medida que me surjan nuevos problemas que automatizar.
 
@@ -25,106 +25,57 @@ Este es un proyecto puramente personal y a medida, diseñado para resolver mis n
 
 ---
 
-## 📂 Estructura del Proyecto
+## 🎛️ Módulos
 
-```text
-telegram-bot/
-├── data/                  # Almacenamiento persistente (estados, JSONs)
-├── src/
-│   ├── commands/          # Menús y comandos del bot divididos por módulos
-│   │   ├── network/       # Módulo de comandos de red (IP pública, etc.)
-│   │   ├── watchdog/      # Módulo de control del Watchdog y configuración
-│   │   └── __init__.py    # Carga dinámica de categorías y wrappers de UI
-│   ├── services/          # Lógica de negocio (Watchdog loop, persistencia)
-│   ├── utils/             # Helpers compartidos (Auth, Network, Uptime)
-│   ├── bot.py             # Punto de entrada principal (Main)
-│   ├── config.py          # Configuración y lectura de variables de entorno
-│   └── lifecycle.py       # Eventos de inicio (Startup) y tareas asincrónicas
-├── .env                   # Variables sensibles de configuración (ignorado en Git)
-├── .gitignore
-└── requirements.txt       # Dependencias del proyecto
-```
+El sistema ya incluye lógica empaquetada para gestionar:
+
+* **Servidor Nginx:**  Visualización del estado del servicio.
+  * Recarga (`reload`) en caliente de configuraciones tras modificar proxies inversos.
+* **Asistente SSL Wizard (Certbot):** Generación automatizada de certificados HTTPS mediante Let's Encrypt.
+  * Validación automática de registros DNS/IP pública antes de certificar.
+* **Monitoreo de Sistema:**
+  * Diagnóstico manual de recursos (Uptime, Consumo de RAM y uso de CPU).
+  * Reporte dinámico de la dirección IP pública del laboratorio.
 
 ---
 
-## 🛠️ Configuración e Instalación
+## 🛠️ Instalación y Configuración Rápida
 
-### Requisitos Previos
-
-- Python **3.10** o superior
-- Un token de Bot de Telegram (gestionado vía [@BotFather](https://t.me/BotFather))
-- Tu **ID de usuario** de Telegram para la lista de autorización
-
-### 1 · Variables de Entorno
-
-Creá un archivo `.env` en la raíz del proyecto con la siguiente estructura:
-
-```env
-BOT_TOKEN = "TU_TELEGRAM_BOT_TOKEN_ACÁ"
-AUTHORIZED_USER = "TU_CHAT_ID_NUMÉRICO_ACÁ"
-```
-
-### 2 · Instalación y Ejecución
+### 1 · Configurar Entorno
+Cloná o creá el archivo `.env` en la raíz del proyecto basándote en el archivo de plantilla:
 
 ```bash
-# Instalá las dependencias necesarias
+cp .env.example .env
+```
+
+Editá el .env con tu token de BotFather, tu ID de Telegram (o -1 para desactivar la seguridad en desarrollo) y tu correo para alertas de Certbot.
+
+### 2 · Ejecución
+El proyecto cuenta con un Modo Mock Agnóstico automático que simula los servicios de Linux (Nginx/Certbot) si se ejecuta en entornos Windows, facilitando el desarrollo local.
+
+```bash
+# Instalar dependencias
 pip install -r requirements.txt
 
-# Ejecutá el bot
+# Iniciar el bot
 python src/bot.py
 ```
 
 ---
 
-## 📈 Cómo Escalar el Bot (Agregar Nuevos Módulos)
+## 📘 Documentación Extendida
 
-Gracias a la arquitectura de `src/commands/__init__.py`, expandir el bot es sumamente sencillo — **no necesitás tocar el bucle principal de ejecución**.
+Para mantener este archivo limpio, las guías de arquitectura y desarrollo se encuentran centralizadas en la carpeta de documentación interna:
 
-### Paso 1 — Crear el Comando
-
-Creá un nuevo archivo dentro del módulo correspondiente. Por ejemplo, `src/commands/network/ping.py`:
-
-```python
-# src/commands/network/ping.py
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-
-COMMAND = "network_ping"
-DESCRIPTION = "Realiza un ping de prueba"
-
-async def handler(update, context):
-    texto_respuesta = "⚡ Sistema respondiendo correctamente."
-
-    # Recuperamos la categoría para mantener el botón "Volver" consistente
-    current_cat = context.user_data.get("current_category", "network")
-    keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton("⬅️ Volver al Menú", callback_data=f"menu_{current_cat}")]
-    ])
-
-    # IMPORTANTE: Usar siempre effective_message.reply_text
-    # para que el Wrapper edite el mensaje en lugar de spamear
-    await update.effective_message.reply_text(
-        texto_respuesta,
-        reply_markup=keyboard
-    )
+```text
+telegram-bot/
+├── data/
+├── src/
+├── docs/
+│   ├── development.md
+│   ├── architecture.md
 ```
 
-### Paso 2 — Registrarlo en la Categoría
-
-Importalo y sumalo a la lista `COMMANDS` del paquete correspondiente:
-
-```python
-# src/commands/network/__init__.py
-from . import currentip
-from . import ping  # <-- Importás tu nuevo archivo
-
-COMMAND = "network"
-CATEGORY = "🌐 Network"
-DESCRIPTION = "Comandos de red"
-
-COMMANDS = [currentip, ping]  # <-- Lo sumás a la lista y listo!
-```
-
-> El despachador central se encargará de mapear los callbacks, inyectar el Wrapper dinámico para evitar spam visual y renderizarlo en el menú principal **automáticamente**.
 
 ---
 
