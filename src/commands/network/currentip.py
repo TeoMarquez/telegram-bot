@@ -1,12 +1,10 @@
 # commands/network/currentip.py
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-from utils import authorized_only
 from utils import get_public_ip
 
 COMMAND = "currentip"
 DESCRIPTION = "Muestra la IP pública"
 
-@authorized_only
 async def handler(update, context):
     ip = get_public_ip()
     

@@ -3,9 +3,11 @@
 from telegram.ext import CommandHandler, CallbackQueryHandler
 from telegram import BotCommand, InlineKeyboardButton, InlineKeyboardMarkup
 
+from config import AUTHORIZED_USER
+from utils import authorized_only
 from . import network, watchdog, nginx
 
-CATEGORIES = [network, watchdog,nginx]
+CATEGORIES = [network, watchdog, nginx]
 
 COMMAND_MAP = {
     cmd.COMMAND: cmd.handler
@@ -46,8 +48,20 @@ def get_handlers():
                     CommandHandler(cmd.COMMAND, cmd.handler)
                 )
 
+    if AUTHORIZED_USER != -1:
+        print(f"[AUTH] Protegiendo handlers dinámicamente para el ID: {AUTHORIZED_USER}")
+        for handler in handlers:
+            if hasattr(handler, "callback") and handler.callback:
+                handler.callback = authorized_only(handler.callback)
+    else:
+        print("[AUTH] Bot corriendo en Modo Público. Sin restricciones en comandos.")
+
+    dispatcher_cb = _callback_dispatcher
+    if AUTHORIZED_USER != -1:
+        dispatcher_cb = authorized_only(_callback_dispatcher)
+
     handlers.append(
-        CallbackQueryHandler(_callback_dispatcher)
+        CallbackQueryHandler(dispatcher_cb)
     )
 
     return handlers
