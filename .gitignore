@@ -8,6 +8,7 @@ __pycache__/
 
 # Ignore data files
 data/*.json
+/logs
 
 # ignore .bat files
 *.bat
