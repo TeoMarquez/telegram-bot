@@ -25,23 +25,30 @@ def list_sites():
     init_service()
     sites_info = []
     try:
-        files = [f for f in os.listdir(NGINX_DIR) if os.path.isfile(os.path.join(NGINX_DIR, f)) and f.endswith('.conf')]
+        files = [
+            f for f in os.listdir(NGINX_DIR) 
+            if os.path.isfile(os.path.join(NGINX_DIR, f)) and not f.startswith('.')
+        ]
         
         for file in files:
             file_name_clean = os.path.splitext(file)[0]
             filepath = os.path.join(NGINX_DIR, file)
-            domain_found = "No configurado"
             
-            with open(filepath, "r", encoding="utf-8") as f:
+            domains_found = set()
+            
+            with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
                 for line in f:
                     line_clean = line.strip()
                     if line_clean.startswith("server_name") and line_clean.endswith(";"):
-                        domain_found = line_clean.replace("server_name", "").replace(";", "").strip()
-                        break
+                        domain = line_clean.replace("server_name", "").replace(";", "").strip()
+                        if domain:
+                            domains_found.add(domain.split()[0])
+            
+            domain_display = ", ".join(domains_found) if domains_found else "No configurado"
             
             sites_info.append({
-                "file": file_name_clean,
-                "domain": domain_found
+                "file": file,  
+                "domain": domain_display
             })
             
         return sites_info
@@ -53,13 +60,13 @@ def is_port_in_use(port):
     init_service()
     port_str = f"127.0.0.1:{port}"
     try:
-        files = [f for f in os.listdir(NGINX_DIR) if os.path.isfile(os.path.join(NGINX_DIR, f)) and f.endswith('.conf')]
+        files = [f for f in os.listdir(NGINX_DIR) if os.path.isfile(os.path.join(NGINX_DIR, f)) and not f.startswith('.')]
         for file in files:
             filepath = os.path.join(NGINX_DIR, file)
-            with open(filepath, "r", encoding="utf-8") as f:
+            with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
                 content = f.read()
                 if port_str in content or f"localhost:{port}" in content:
-                    return os.path.splitext(file)[0]
+                    return file
     except Exception as e:
         print(f"Error al verificar puertos de Nginx: {e}")
     return None
@@ -145,7 +152,7 @@ def set_base_domain(new_domain):
 
 def reload_nginx():
     if is_windows():
-        return True, "Mock Windows: Nginx testeado y recargado con éxito (Simulado)."
+        return True, "Mock Windows: Nginx testeado y recargado con exito (Simulado)."
 
     try:
         test_run = subprocess.run(["sudo", "nginx", "-t"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
@@ -155,17 +162,17 @@ def reload_nginx():
 
         reload_run = subprocess.run(["sudo", "nginx", "-s", "reload"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         if reload_run.returncode == 0:
-            return True, "Nginx se recargó correctamente y los cambios están activos."
+            return True, "Nginx se recargo correctamente y los cambios estan activos."
         else:
             error_msg = reload_run.stderr or reload_run.stdout
-            return False, f"Falló el reload:\n`{error_msg.strip()}`"
+            return False, f"Fallo el reload:\n`{error_msg.strip()}`"
     except Exception as e:
-        print(f"Error crítico al ejecutar comandos de Nginx: {e}")
+        print(f"Error critico al ejecutar comandos de Nginx: {e}")
         return False, f"Error interno del sistema operativo: {e}"
 
 def generate_ssl(domain):
     if is_windows():
-        return True, f"Mock Windows: Certificado SSL generado con éxito para `{domain}` (Simulado)."
+        return True, f"Mock Windows: Certificado SSL generado con exito para `{domain}` (Simulado)."
 
     admin_email = ADMIN_EMAIL
     try:
@@ -179,12 +186,12 @@ def generate_ssl(domain):
         ]
         process = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         if process.returncode == 0:
-            return True, f"¡Certificado SSL instalado correctamente en `{domain}`! Redirección HTTPS activa."
+            return True, f"Certificado SSL instalado correctamente en `{domain}`! Redireccion HTTPS activa."
         else:
             error_msg = process.stderr or process.stdout
-            return False, f"Certbot falló con el siguiente error:\n`{error_msg.strip()}`"
+            return False, f"Certbot fallo con el siguiente error:\n`{error_msg.strip()}`"
     except Exception as e:
-        print(f"Error crítico al ejecutar Certbot: {e}")
+        print(f"Error critico al ejecutar Certbot: {e}")
         return False, f"Error interno del sistema al ejecutar Certbot: {e}"
 
 def get_uncertified_sites():
