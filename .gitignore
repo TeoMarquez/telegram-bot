@@ -1,0 +1,13 @@
+# Ignore virtual environment and compiled Python files
+venv/
+__pycache__/
+*.pyc
+
+# Ignore environment variables file
+.env
+
+# Ignore data files
+data/*.json
+
+# ignore .bat files
+*.bat
