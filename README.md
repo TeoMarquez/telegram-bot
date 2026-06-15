@@ -1,11 +1,13 @@
 <div align="center">
 
-# 🤖 Telegram System Monitor Bot
+# Mi Bot de telegram  (Mini-PC Lab)
 
-**Bot modular y robusto para monitorear servidores domésticos y Mini-PCs desde Telegram**
+Este es un proyecto puramente personal y a medida, diseñado para resolver mis necesidades específicas de control y monitoreo en mi Mini-PC doméstica. Lo armé de forma modular principalmente para experimentar con una interfaz limpia dentro de Telegram (estilo Mini-App) y para que sea fácil meterle mano a medida que me surjan nuevos problemas que automatizar.
 
-![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)
+> ⚠️ **Nota:** No busca ser una herramienta genérica ni un sistema de monitoreo universal. Es mi espacio de juego y automatización diaria. Sentite libre de forkear o utilizar esta aplicacion como base para tus necesidades
+
 ![Telegram](https://img.shields.io/badge/Telegram-Bot%20API-26A5E4?style=for-the-badge&logo=telegram&logoColor=white)
+![Status](https://img.shields.io/badge/Status-Active-22c55e?style=for-the-badge)
 
 </div>
 
