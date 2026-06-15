@@ -11,3 +11,6 @@ data/*.json
 
 # ignore .bat files
 *.bat
+
+# ignore windows mock files
+/data/nginx_mock
