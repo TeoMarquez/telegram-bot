@@ -3,9 +3,9 @@
 from telegram.ext import CommandHandler, CallbackQueryHandler
 from telegram import BotCommand, InlineKeyboardButton, InlineKeyboardMarkup
 
-from . import network, watchdog
+from . import network, watchdog, nginx
 
-CATEGORIES = [network, watchdog]
+CATEGORIES = [network, watchdog,nginx]
 
 COMMAND_MAP = {
     cmd.COMMAND: cmd.handler
@@ -19,7 +19,6 @@ def get_bot_commands():
         BotCommand(cat.COMMAND, cat.DESCRIPTION)
         for cat in CATEGORIES
     ]
-# En commands/__init__.py
 
 def get_handlers():
     handlers = []
@@ -49,7 +48,6 @@ def get_handlers():
     return handlers
 
 def _render_menu_keyboard(cat):
-    """Función auxiliar para armar la botonera de una categoría."""
     return InlineKeyboardMarkup([
         [InlineKeyboardButton(
             f"/{cmd.COMMAND} — {cmd.DESCRIPTION}",
@@ -59,7 +57,6 @@ def _render_menu_keyboard(cat):
     ])
 
 def _make_category_handler(cat):
-    """Manejador cuando alguien escribe el comando principal (ej: /watchdog)."""
     async def handler(update, context):
         await update.effective_message.reply_text(
             f"{cat.CATEGORY}",
@@ -69,7 +66,6 @@ def _make_category_handler(cat):
 
 
 class CustomUpdate:
-    """Wrapper para interceptar el envío de mensajes y transformarlo en edición."""
     def __init__(self, original_update, query):
         self._update = original_update
         self._query = query
@@ -86,7 +82,6 @@ class CustomMessage:
         self._query = query
 
     async def reply_text(self, text, *args, **kwargs):
-        # Forzamos a que edite el mensaje existente en lugar de mandar uno nuevo
         return await self._query.edit_message_text(text, *args, **kwargs)
 
     def __getattr__(self, name):

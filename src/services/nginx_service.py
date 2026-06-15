@@ -1,0 +1,202 @@
+import os
+from utils import is_windows
+import json
+import subprocess
+
+CONFIG_PATH = os.path.join(os.getcwd(), "data", "config.json")
+DEFAULT_DOMAIN = "localhost"
+
+if is_windows():
+    NGINX_DIR = os.path.join(os.getcwd(), "data", "nginx_mock")
+else:
+    NGINX_DIR = "/etc/nginx/sites-enables"
+
+def init_service():
+    if not os.path.exists(NGINX_DIR):
+        os.makedirs(NGINX_DIR, exist_ok=True)
+
+        if is_windows():
+            with open(os.path.join(NGINX_DIR, "app_alquileres.conf"), "w") as f:
+                f.write("# Mock Nginx Config\nserver {\n    listen 80;\n    server_name alquileres.local;\n}")
+            with open(os.path.join(NGINX_DIR, "api_control.conf"), "w") as f:
+                f.write("# Mock Nginx Config\nserver {\n    listen 80;\n    server_name api.local;\n}")
+
+def list_sites():
+    init_service()
+    sites_info = []
+    try:
+        files = [f for f in os.listdir(NGINX_DIR) if os.path.isfile(os.path.join(NGINX_DIR, f)) and f.endswith('.conf')]
+        
+        for file in files:
+            file_name_clean = os.path.splitext(file)[0]
+            filepath = os.path.join(NGINX_DIR, file)
+            domain_found = "No configurado"
+            
+            with open(filepath, "r", encoding="utf-8") as f:
+                for line in f:
+                    line_clean = line.strip()
+                    if line_clean.startswith("server_name") and line_clean.endswith(";"):
+                        domain_found = line_clean.replace("server_name", "").replace(";", "").strip()
+                        break
+            
+            sites_info.append({
+                "file": file_name_clean,
+                "domain": domain_found
+            })
+            
+        return sites_info
+    except Exception as e:
+        print(f"Error leyendo configuraciones de Nginx: {e}")
+        return []
+    
+def is_port_in_use(port):
+    init_service()
+    port_str = f"127.0.0.1:{port}"
+    try:
+        files = [f for f in os.listdir(NGINX_DIR) if os.path.isfile(os.path.join(NGINX_DIR, f)) and f.endswith('.conf')]
+        for file in files:
+            filepath = os.path.join(NGINX_DIR, file)
+            with open(filepath, "r", encoding="utf-8") as f:
+                content = f.read()
+                if port_str in content or f"localhost:{port}" in content:
+                    return os.path.splitext(file)[0]
+    except Exception as e:
+        print(f"Error al verificar puertos de Nginx: {e}")
+    return None
+
+def add_site(name, domain, port):
+    init_service()
+    filename = f"{name}.conf" if not name.endswith(".conf") else name
+    filepath = os.path.join(NGINX_DIR, filename)
+    
+    config_template = f"""server {{
+    listen 80;
+    server_name {domain};
+
+    location / {{
+        proxy_pass http://127.0.0.1:{port};
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }}
+}}
+"""
+    try:
+        with open(filepath, "w", encoding="utf-8") as f:
+            f.write(config_template)
+        return True
+    except Exception as e:
+        print(f"Error creando sitio Nginx: {e}")
+        return False
+
+
+def remove_site(filename):
+    init_service()
+    safe_filename = os.path.basename(filename)
+    filepath = os.path.join(NGINX_DIR, safe_filename)
+    
+    if os.path.exists(filepath):
+        try:
+            os.remove(filepath)
+            return True
+        except Exception as e:
+            print(f"Error al eliminar archivo Nginx: {e}")
+            return False
+    return False
+
+def _ensure_config_exists():
+    os.makedirs(os.path.dirname(CONFIG_PATH), exist_ok=True)
+    
+    if not os.path.exists(CONFIG_PATH):
+        try:
+            initial_data = {"base_domain": DEFAULT_DOMAIN}
+            with open(CONFIG_PATH, "w", encoding="utf-8") as f:
+                json.dump(initial_data, f, indent=4, ensure_ascii=False)
+            print(f"✅ Archivo config.json creado automáticamente en: {CONFIG_PATH}")
+        except Exception as e:
+            print(f"Error al crear config.json por defecto: {e}")
+
+def get_base_domain():
+    _ensure_config_exists()
+    
+    try:
+        with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+            data = json.load(f)
+            return data.get("base_domain", DEFAULT_DOMAIN)
+    except Exception as e:
+        print(f"Error leyendo config.json: {e}")
+        return DEFAULT_DOMAIN
+
+def set_base_domain(new_domain):
+    _ensure_config_exists()
+    try:
+        data = {}
+        if os.path.exists(CONFIG_PATH):
+            with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+                try:
+                    data = json.load(f)
+                except json.JSONDecodeError:
+                    data = {}
+
+        data["base_domain"] = new_domain.strip().lower()
+
+        with open(CONFIG_PATH, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=4, ensure_ascii=False)
+        return True
+    except Exception as e:
+        print(f"Error escribiendo en config.json: {e}")
+        return False
+    
+
+from utils import is_windows
+
+def reload_nginx():
+    if is_windows():
+        return True, "Mock Windows: Nginx testeado y recargado con éxito (Simulado)."
+
+    try:
+        test_run = subprocess.run(["sudo", "nginx", "-t"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        
+        if test_run.returncode != 0:
+            error_msg = test_run.stderr or test_run.stdout
+            return False, f"Error de sintaxis en Nginx:\n`{error_msg.strip()}`"
+
+        reload_run = subprocess.run(["sudo", "nginx", "-s", "reload"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+        
+        if reload_run.returncode == 0:
+            return True, "Nginx se recargó correctamente y los cambios están activos."
+        else:
+            error_msg = reload_run.stderr or reload_run.stdout
+            return False, f"Falló el reload:\n`{error_msg.strip()}`"
+
+    except Exception as e:
+        print(f"Error crítico al ejecutar comandos de Nginx: {e}")
+        return False, f"Error interno del sistema operativo: {e}"
+
+def generate_ssl(domain):
+    if is_windows():
+        return True, f"Mock Windows: Certificado SSL generado con éxito para `{domain}` (Simulado)."
+
+    admin_email = "tu_mail_de_registro@gmail.com" 
+
+    try:
+
+        cmd = [
+            "sudo", "certbot", "--nginx",
+            "-d", domain,
+            "--non-interactive",
+            "--agree-tos",
+            "-m", admin_email,
+            "--redirect"
+        ]
+
+        process = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+
+        if process.returncode == 0:
+            return True, f"¡Certificado SSL instalado correctamente en `{domain}`! Redirección HTTPS activa."
+        else:
+            error_msg = process.stderr or process.stdout
+            return False, f"Certbot falló con el siguiente error:\n`{error_msg.strip()}`"
+
+    except Exception as e:
+        print(f"Error crítico al ejecutar Certbot: {e}")
+        return False, f"Error interno del sistema al ejecutar Certbot: {e}"
