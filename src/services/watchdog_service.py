@@ -74,13 +74,9 @@ def get_status():
     }
 
 async def watchdog_loop(app):
-
     while True:
-
         try:
-
-            if is_enabled():
-
+            if is_enabled() and AUTHORIZED_USER != -1:
                 ram = psutil.virtual_memory()
                 cpu = psutil.cpu_percent()
 
@@ -93,14 +89,8 @@ async def watchdog_loop(app):
                         f"CPU: {cpu}%\n"
                         f"Disponible: {ram.available // 1024 // 1024} MB"
                     )
-            )
-
+                )
         except Exception as e:
+            print(f"Watchdog error: {e}")
 
-            print(
-                f"Watchdog error: {e}"
-            )
-
-        await asyncio.sleep(
-            get_interval()
-        )
+        await asyncio.sleep(get_interval())
