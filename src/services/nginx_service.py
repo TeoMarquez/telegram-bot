@@ -2,6 +2,7 @@ import os
 import json
 import subprocess
 from utils import is_windows
+from config import ADMIN_EMAIL
 
 CONFIG_PATH = os.path.join(os.getcwd(), "data", "config.json")
 DEFAULT_DOMAIN = "localhost"
@@ -166,7 +167,7 @@ def generate_ssl(domain):
     if is_windows():
         return True, f"Mock Windows: Certificado SSL generado con éxito para `{domain}` (Simulado)."
 
-    admin_email = "tu_mail_de_registro@gmail.com" 
+    admin_email = ADMIN_EMAIL
     try:
         cmd = [
             "sudo", "certbot", "--nginx",
