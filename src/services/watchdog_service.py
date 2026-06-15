@@ -1,17 +1,17 @@
 # services/watchdog_service.py
+from config import AUTHORIZED_USER, WATCHDOG_FILE
+from state import heartbeat
+from services import log_event
+from utils import get_uptime
 
 import asyncio
-
-from config import (
-    AUTHORIZED_USER,
-    WATCHDOG_FILE
-)
-
-from utils import get_uptime
 import psutil
 import json
+import time
 
 STATE_FILE = WATCHDOG_FILE
+LOG_INTERVAL = 10
+_last_log = {"t": 0}
 
 def load_state():
 
@@ -76,9 +76,26 @@ def get_status():
 async def watchdog_loop(app):
     while True:
         try:
+            if not heartbeat.is_alive(120):
+                log_event("WATCHDOG_FAIL | heartbeat timeout")
+                print("[WATCHDOG] Bot congelado → restart")
+                raise SystemExit(1)
+
+            now = time.time()
+            ram = psutil.virtual_memory()
+            cpu = psutil.cpu_percent()
+            
+            if now - _last_log["t"] >= LOG_INTERVAL:
+                log_event(
+                    f"WATCHDOG_OK | CPU={cpu}% RAM={ram.percent}% UPTIME={get_uptime()}"
+                )
+                _last_log["t"] = now
+            await app.bot.get_me()
+
+
             if is_enabled() and AUTHORIZED_USER != -1:
-                ram = psutil.virtual_memory()
-                cpu = psutil.cpu_percent()
+                
+
 
                 await app.bot.send_message(
                     chat_id=AUTHORIZED_USER,
@@ -86,11 +103,13 @@ async def watchdog_loop(app):
                         "🟢 Watchdog\n\n"
                         f"Uptime: {get_uptime()}\n"
                         f"RAM: {ram.percent}%\n"
-                        f"CPU: {cpu}%\n"
-                        f"Disponible: {ram.available // 1024 // 1024} MB"
+                        f"CPU: {cpu}%"
                     )
                 )
+
         except Exception as e:
-            print(f"Watchdog error: {e}")
+            log_event(f"WATCHDOG_ERROR | {e}")
+            print(f"[WATCHDOG] error: {e}")
+            raise SystemExit(1)
 
         await asyncio.sleep(get_interval())
