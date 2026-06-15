@@ -29,6 +29,11 @@ def get_handlers():
             handlers.append(conv)
 
     for cat in CATEGORIES:
+        extra_handlers = getattr(cat, 'EXTRA_HANDLERS', [])
+        for extra in extra_handlers:
+            handlers.append(extra)
+
+    for cat in CATEGORIES:
         handlers.append(
             CommandHandler(cat.COMMAND, _make_category_handler(cat))
         )
