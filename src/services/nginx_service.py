@@ -76,9 +76,10 @@ def add_site(name, domain, port):
         proxy_pass http://127.0.0.1:{port};
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
+        }}
     }}
-}}
-"""
+    """
+    
     try:
         with open(filepath, "w", encoding="utf-8") as f:
             f.write(config_template)
@@ -184,3 +185,26 @@ def generate_ssl(domain):
     except Exception as e:
         print(f"Error crítico al ejecutar Certbot: {e}")
         return False, f"Error interno del sistema al ejecutar Certbot: {e}"
+
+def get_uncertified_sites():
+    all_sites = list_sites()
+    uncertified = []
+    
+    for site in all_sites:
+        file_base = site.get("file")
+        filename = f"{file_base}.conf" if not file_base.endswith(".conf") else file_base
+        filepath = os.path.join(NGINX_DIR, filename)
+        
+        if not os.path.exists(filepath):
+            continue
+            
+        try:
+            with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
+                content = f.read()
+                clean_content = content.lower()
+                if "443" not in clean_content and "ssl" not in clean_content:
+                    uncertified.append(site)
+        except Exception as e:
+            print(f"Error leyendo {filename}: {e}")
+            
+    return uncertified
