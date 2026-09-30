@@ -17,6 +17,12 @@ Este documento sirve como manual práctico de desarrollo y como especificación 
 
 ---
 
+## Integración con Service Manager
+
+La categoría conversacional `service_manager` consulta la API de Services Manager. Su grafo, endpoints, configuración (`url_api_service_manager` y `token_service_manager`) y decisiones de navegación están descritos en [SERVICE_MANAGER.md](SERVICE_MANAGER.md). Para cambios en esta integración, contrastar siempre los campos con `Services-Manager/docs/API.md`.
+
+---
+
 ## Arquitectura del Core
 
 ### Flujo de arranque del despachador

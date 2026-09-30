@@ -36,6 +36,7 @@ El sistema ya incluye lógica empaquetada para gestionar:
 * **Monitoreo de Sistema:**
   * Diagnóstico manual de recursos (Uptime, Consumo de RAM y uso de CPU).
   * Reporte dinámico de la dirección IP pública del laboratorio.
+* **Services Manager:** búsqueda y administración conversacional de los servicios del servidor mediante su API REST.
 
 ---
 
@@ -67,12 +68,16 @@ python src/bot.py
 
 Para mantener este archivo limpio, las guías de arquitectura y desarrollo se encuentran centralizadas en la carpeta de documentación interna:
 
+- [Integración Service Manager](docs/SERVICE_MANAGER.md): menús conversacionales, API, configuración y decisiones de navegación.
+- [Guía de desarrollo](docs/develpment.md) y [arquitectura](docs/architecture.md).
+
 ```text
 telegram-bot/
 ├── data/
 ├── src/
 ├── docs/
-│   ├── development.md
+│   ├── SERVICE_MANAGER.md
+│   ├── develpment.md
 │   ├── architecture.md
 ```
 

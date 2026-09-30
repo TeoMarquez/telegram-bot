@@ -5,9 +5,9 @@ from telegram import BotCommand, InlineKeyboardButton, InlineKeyboardMarkup
 
 from config import AUTHORIZED_USER
 from utils import authorized_only
-from . import network, watchdog, nginx
+from . import network, watchdog, nginx, service_manager
 
-CATEGORIES = [network, watchdog, nginx]
+CATEGORIES = [network, watchdog, nginx, service_manager]
 
 COMMAND_MAP = {
     cmd.COMMAND: cmd.handler
@@ -67,6 +67,9 @@ def get_handlers():
     return handlers
 
 def _render_menu_keyboard(cat):
+    custom_renderer = getattr(cat, "render_menu_keyboard", None)
+    if custom_renderer:
+        return custom_renderer()
     return InlineKeyboardMarkup([
         [InlineKeyboardButton(
             f"/{cmd.COMMAND} — {cmd.DESCRIPTION}",
@@ -77,8 +80,10 @@ def _render_menu_keyboard(cat):
 
 def _make_category_handler(cat):
     async def handler(update, context):
+        text_renderer = getattr(cat, "render_menu_text", None)
+        text = text_renderer() if text_renderer else f"{cat.CATEGORY}"
         await update.effective_message.reply_text(
-            f"{cat.CATEGORY}",
+            text,
             reply_markup=_render_menu_keyboard(cat)
         )
     return handler
@@ -116,8 +121,10 @@ async def _callback_dispatcher(update, context):
         cat = next((c for c in CATEGORIES if getattr(c, 'COMMAND', '') == cat_name), None)
         if cat:
             await query.answer()
+            text_renderer = getattr(cat, "render_menu_text", None)
+            text = text_renderer() if text_renderer else f"{cat.CATEGORY}"
             await query.edit_message_text(
-                f"{cat.CATEGORY}",
+                text,
                 reply_markup=_render_menu_keyboard(cat)
             )
             return
